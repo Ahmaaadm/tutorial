@@ -1,0 +1,96 @@
+
+--ex6)
+--a)
+drop trigger noModify
+create trigger noModify
+on Take
+after update
+as
+begin
+	if(update(grade))
+	begin
+		raiserror('cannot modify garde',15,120)
+		update Take 
+		set Grade = (select Grade from deleted)
+		where StudentNo = (select StudentNo from inserted)
+		and CourseNo = (select CourseNo from inserted)
+	end
+end
+
+--aam jrb she
+create trigger nomodifyv21
+on Take
+instead of update
+as 
+begin
+	if(update(Grade))
+		raiserror('cannot modify Grade',15,120)
+	else
+	begin
+		update Take
+		set Grade = (select Grade from inserted)
+		where StudentNo = (select StudentNo from inserted)
+		and	 CourseNo = (select CourseNo from inserted)
+	end
+end
+
+--b)
+create trigger noOp
+on Instructor
+instead of insert,delete,update
+as
+begin
+	raiserror('you dont have acces to this table',15,120)
+end
+drop trigger after_remove_inst
+
+--c)
+create trigger after_remove_inst
+on Instructor
+after delete
+as
+begin
+	delete from Course where InstNo = (select InstNo from deleted)
+	print 'all information about this instructor has been deleted '
+end
+
+--d)
+create trigger onInsert
+on Instructor
+instead of insert
+as
+begin 
+	if exists(select * from Instructor where InstNo = (select InstNo from inserted))
+		begin
+			print 'cannot insert an existent ' 
+			rollback
+		end
+	else
+		begin
+			INSERT INTO Instructor (InstNo, Name, Rank, Birhtdate)
+			SELECT InstNo, Name, Rank, Birhtdate FROM inserted;
+		end
+end
+
+select * from Instructor
+insert into Instructor values(12,'alloush','Full','2000-01-01')
+
+--e)
+create trigger noDecrease
+on Course
+instead of update
+as
+begin
+	if(select nbHours from inserted)<(select nbHours from deleted)
+		raiserror('cannot decrease the number hours of a course',15,120)
+	else
+		begin
+		update Course
+		set nbHours = (select nbHours from inserted)
+		print 'the nbhours has been changed'
+		end
+end
+
+select * from Course
+update Course
+set nbHours = 4 where CourseNo = 501
